@@ -11,8 +11,10 @@
  * @param {boolean} param0.exclude Exclude filter if true, include otherwise
  * @param {array} param0.filter Array of loggers to filter (exclude or include)
  * @param {function} [param0.showLogs=showLogs(logsObject)] A function to output logs.
+ * @param {string} param0.logzio_token For details, see: https://app-eu.logz.io/#/dashboard/settings/general
+ * @param {array} param0.realms Array of realms to filter on (include undefined to match records without realm).
  */
-module.exports = function({
+module.exports = function ({
     origin,
     api_key_id,
     api_key_secret,
@@ -21,10 +23,27 @@ module.exports = function({
     exclude,
     filter,
     showLogs,
-    scriptonly
+    scriptonly,
+    logzio_token,
+    realms
 }) {
 
-    frequency = frequency * 1000 || 10000
+    if (logzio_token) {
+        var logger = require('logzio-nodejs').createLogger({
+            token: logzio_token,
+            protocol: 'https',
+            host: 'listener.logz.io',
+            port: '8071',
+            type: 'ForgeRockIDCloud',
+            //addTimestampWithNanoSecs: true,
+            extraFields: { origin: origin }
+        });
+    }
+
+    var logzio = logzio_token?true:false;
+    var filterRealms = realms.length>0?true:false;
+
+    frequency = frequency * 1000 || 5000
 
     /**
      * Processes the logs' content: filters, formats, etc.
@@ -34,18 +53,29 @@ module.exports = function({
      * @param {object[]} [logsObject.result] An array of logs.
      * @param {string|object} [logsObject.result.payload] A log payload.
      */
-    showLogs = showLogs || function({
+    showLogs = showLogs || function ({
         logsObject
     }) {
         if (Array.isArray(logsObject.result)) {
             //console.error(`${logsObject.result.length}`);
             let excluded = 0;
             logsObject.result.forEach(log => {
+                log.payload['@timestamp'] = log.payload.timestamp
                 if (scriptonly) {
                     const scriptRegex = /scripts.*/g;
                     if (log.payload.logger) {
                         if (log.payload.logger.match(scriptRegex)) {
-                            console.log(JSON.stringify(log.payload))
+                            let flattenedPayload
+                            if (log.payload.entries && log.payload.entries[0] && log.payload.entries[0].info) {
+                              flattenedPayload = { ...log.payload, ...log.payload.entries[0].info}
+                            } else {
+                                flattenedPayload = log.payload
+                            }
+                            //console.log(JSON.stringify(log.payload))
+                            console.log(JSON.stringify(flattenedPayload))
+                            if (logzio) {
+                                logger.log(flattenedPayload)
+                            }
                         } else excluded++;
                     } else excluded++;
                 } else {
@@ -55,7 +85,21 @@ module.exports = function({
                         // console.error('EXCLUDED: exclude='+exclude+' filter includes '+log.payload.logger+'='+filter.includes(log.payload.logger)+' filter includes '+log.type+'='+filter.includes(log.type))
                     } else {
                         // console.error('INCLUDED: exclude='+exclude+' filter includes '+log.payload.logger+'='+filter.includes(log.payload.logger)+' filter includes '+log.type+'='+filter.includes(log.type))
-                        console.log(JSON.stringify(log.payload))
+                        if (filterRealms && !realms.includes(log.payload.realm)) {
+                            excluded++
+                        } else {
+                            let flattenedPayload
+                            if (log.payload.entries && log.payload.entries[0] && log.payload.entries[0].info) {
+                              flattenedPayload = { ...log.payload, ...log.payload.entries[0].info}
+                            } else {
+                                flattenedPayload = log.payload
+                            }
+                            //console.log(JSON.stringify(log.payload))
+                            console.log(JSON.stringify(flattenedPayload))
+                            if (logzio) {
+                                logger.log(flattenedPayload)
+                            }
+                        }
                     }
                 }
             })
@@ -63,7 +107,18 @@ module.exports = function({
                 console.error('Filtered out ' + excluded + ' events.')
             }
         } else {
-            console.log(JSON.stringify(logsObject))
+            logsObject['@timestamp'] = logsObject.timestamp
+            let flattenedObject 
+            if (logsObject.entries && logsObject.entries[0] && logsObject.entries[0].info) {
+                flattenedObject = { ...logsObject, ...logsObject.entries[0].info}
+            } else {
+                flattenedObject = logsObject
+            }
+            //console.log(JSON.stringify(logsObject))
+            console.log(JSON.stringify(flattenedObject))
+            if (logzio) {
+                logger.log(flattenedObject)
+            }
         }
     }
 
@@ -158,6 +213,6 @@ module.exports = function({
         source: source
     }
 
-    console.error("origin=%s key=%s freq=%dms src=%s filter=%s scriptonly=%s", origin, api_key_id, frequency, source, (exclude ? 'exclude' : 'include'), scriptonly)
+    console.error("origin=%s key=%s freq=%dms src=%s filter=%s scriptonly=%s realms=%s", origin, api_key_id, frequency, source, (exclude ? 'exclude' : 'include'), scriptonly, realms)
     getLogs()
 }

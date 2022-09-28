@@ -9,6 +9,16 @@ const origin = process.env.ORIGIN;
 const api_key_id = process.env.API_KEY_ID;
 const api_key_secret = process.env.API_KEY_SECRET;
 
+if (!(origin && api_key_id && api_key_secret)) {
+    console.error('No origin and/or API key/secret configured. Exiting.');
+    process.exit(1);
+}
+
+// Logz.io token as described in https://app-eu.logz.io/#/dashboard/settings/general
+const logzio_token = process.env.LOGZIO_TOKEN;
+// Array of realms to filter on (include undefined to match records without realm).
+const realms = [];
+
 /* Specify the logs' source, as described in https://backstage.forgerock.com/docs/idcloud/latest/paas/tenant/audit-logs.html#getting_sources
 
 Currently available sources are listed below.
@@ -76,5 +86,8 @@ tail({
     frequency: undefined,
     exclude: true,
     filter: undefined,
-    showLogs: showLogs
+    showLogs: showLogs,
+    scriptonly: false,
+    logzio_token: logzio_token,
+    realms: realms
 })

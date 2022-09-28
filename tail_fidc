@@ -18,6 +18,8 @@ if (!(origin && api_key_id && api_key_secret)) {
 const logzio_token = process.env.LOGZIO_TOKEN;
 // Array of realms to filter on (include undefined to match records without realm).
 const realms = [];
+// empty = FIDC auditing default, debug = add core debug, all = everything, custom = actual sources
+const sources = process.env.SOURCES;
 
 /* Specify the logs' source, as described in https://backstage.forgerock.com/docs/idcloud/latest/paas/tenant/audit-logs.html#getting_sources
 
@@ -30,7 +32,7 @@ For development and debugging use "am-core" and "idm-core" respectively.
 // const source = 'am-activity'
 // const source = 'am-authentication'
 // const source = 'am-config'
-const source = 'am-core'
+// const source = 'am-core'
 // const source = 'am-everything'
 // const source = 'ctsstore'
 // const source = 'ctsstore-access'
@@ -49,9 +51,33 @@ const source = 'am-core'
 // const source = 'userstore-ldif-importer'
 // const source = 'userstore-upgrade'
 
+// [TimD] good default for FIDC auditing
+var source = 'am-activity,am-authentication,idm-activity,idm-authentication'
+
+// Add any custom sources
+if (sources) {
+    switch (sources.toLowerCase()) {
+        case 'debug':
+            source += ',am-core,idm-core';
+            break;
+        case 'all':
+            source = 'am-access,am-activity,am-authentication,am-config,am-core,am-everything,ctsstore,ctsstore-access,ctsstore-config-audit,ctsstore-upgrade,idm-access,idm-activity,idm-authentication,idm-config,idm-core,idm-everything,idm-sync,userstore,userstore-access,userstore-config-audit,userstore-ldif-importer,userstore-upgrade';
+            break;
+        default:
+            source = sources;
+    }
+}
+
 // import categories from('./categories.json');
 
 const misc_noise = [
+    'org.forgerock.openam.cts.impl.queue.config.CTSQueueConfiguration',
+    'org.forgerock.am.health.ReadinessCheckEndpoint',
+    'org.forgerock.openam.http.ApiDescriptorFilter',
+    'org.forgerock.openam.uma.rest.UmaPolicyApplicationListener',
+    'org.forgerock.openam.identity.idm.IdentityServiceImpl',
+    'com.iplanet.services.ldap.event.EventService',
+    'com.sun.identity.idm.IdRepoListener',
     'text/plain',
     'com.iplanet.dpro.session.operations.ServerSessionOperationStrategy',
     'com.iplanet.dpro.session.SessionIDFactory',

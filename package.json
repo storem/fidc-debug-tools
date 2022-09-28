@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "dotenv": "^16.0.2",
+    "logzio-nodejs": "^2.1.4"
+  }
+}
