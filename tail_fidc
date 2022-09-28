@@ -18,38 +18,9 @@ if (!(origin && api_key_id && api_key_secret)) {
 const logzio_token = process.env.LOGZIO_TOKEN;
 // Array of realms to filter on (include undefined to match records without realm).
 const realms = [];
-// empty = FIDC auditing default, debug = add core debug, all = everything, custom = actual sources
+// <empty> = FIDC auditing default, debug = add core debug, all = everything, custom = actual sources
+// as described in https://backstage.forgerock.com/docs/idcloud/latest/paas/tenant/audit-logs.html#getting_sources
 const sources = process.env.SOURCES;
-
-/* Specify the logs' source, as described in https://backstage.forgerock.com/docs/idcloud/latest/paas/tenant/audit-logs.html#getting_sources
-
-Currently available sources are listed below.
-Uncomment the source you want to use.
-For development and debugging use "am-core" and "idm-core" respectively.
-*/
-
-// const source = 'am-access'
-// const source = 'am-activity'
-// const source = 'am-authentication'
-// const source = 'am-config'
-// const source = 'am-core'
-// const source = 'am-everything'
-// const source = 'ctsstore'
-// const source = 'ctsstore-access'
-// const source = 'ctsstore-config-audit'
-// const source = 'ctsstore-upgrade'
-// const source = 'idm-access'
-// const source = 'idm-activity'
-// const source = 'idm-authentication'
-// const source = 'idm-config'
-// const source = 'idm-core'
-// const source = 'idm-everything'
-// const source = 'idm-sync'
-// const source = 'userstore'
-// const source = 'userstore-access'
-// const source = 'userstore-config-audit'
-// const source = 'userstore-ldif-importer'
-// const source = 'userstore-upgrade'
 
 // [TimD] good default for FIDC auditing
 var source = 'am-activity,am-authentication,idm-activity,idm-authentication'
